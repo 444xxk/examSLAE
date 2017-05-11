@@ -1,14 +1,14 @@
 
-echo "Usage: $0 targetasm";
+echo "Usage: $0 target";
 
 if [ $# -eq 0 ]; then echo "NO ARGUMENT GIVEN, EXITING ..."; exit; fi 
 
-echo "This script build assembly, extract bytecode, insert bytecode into wrapper, build wrapper"; 
-echo "Building ASM..."; 
-nasm -f elf32 $1 -o $1.o  
+# echo "This script build assembly, extract bytecode, insert bytecode into wrapper, build wrapper"; 
+# echo "Building ASM..."; 
+# nasm -f elf32 $1 -o $1.o  
 
 echo "dumping bytecode from target file..." ; 
-shell=$(objdump -d ./$1.o | grep '[0-9a-f]:'|grep -v 'file'|cut -f2 -d:|cut -f1-6 -d' '|tr -s ' '|tr '\t' ' '|sed 's/ $//g'|sed 's/ /\\x/g'|paste -d '' -s |sed 's/^/"/'|sed 's/$/"/g');
+shell=$(objdump -d ./$1 | grep '[0-9a-f]:'|grep -v 'file'|cut -f2 -d:|cut -f1-6 -d' '|tr -s ' '|tr '\t' ' '|sed 's/ $//g'|sed 's/ /\\x/g'|paste -d '' -s |sed 's/^/"/'|sed 's/$/"/g');
 
 echo "the shellcode bytecode is $shell"; 
 
@@ -20,6 +20,7 @@ echo "copying bytecode to wrapper shellcode.c" ;
 sed  "s/EDITME/$shell_escape/" shellcode_template.c  > shellcode_build.c 
 echo "sed first pass done" ; 
 sed -i 's/#CS/\\/g' shellcode_build.c; 
+cat shellcode_build.c;
 echo "sed second pass done" ; 
 
 
