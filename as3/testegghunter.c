@@ -1,3 +1,6 @@
+// compile with gcc -z execstack -o testegghunter testegghunter.c
+
+
 #include<stdio.h>
 #include<string.h>
 

@@ -1,8 +1,9 @@
 ; SLAE-XXX
-; copy paste need to make it original now
-; assignment 3 : egghunter shellcode 
-; originality : I used the call pop ret technique as the other ones were not working for me 
- 
+; thanks for previous students write up :] 
+; assignment 3: egghunter shellcode 
+; originality: I used the jmp pop jmp technique, i have not seen it used and the other techniques did not work for me besides giving segfaults :D 
+
+
 
 global _start
 
@@ -32,8 +33,7 @@ next_addr:
 ; here we used 0x50905090 , push eax and nop  
  jmp eax ; 
  
-; function used to get valid address 
-; see below 
+; function used to get valid address on the stack and pop / save it 
 func:
  pop eax 
  jmp eggcreate 

