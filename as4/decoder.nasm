@@ -1,6 +1,6 @@
 ; SLAE-XXX
-; assignemnt: create a custom encoding scheme like Insertion Encoder 
-; originality: copy paste , need to make it 
+
+
 
 
 
