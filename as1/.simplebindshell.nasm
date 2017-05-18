@@ -1,9 +1,9 @@
-; SLAE-X 
+; SLAE-XXX 
 ; thanks to writesup from previou students :] 
-; syscalls doc is here: /usr/include/i386-linux-gnu/asm/unistd_32.h 
+; syscalls doc is here: /usr/include/i386-linux-gnu/asm/unistd_32.h  and net.h 
+; requirement for shellcodes: no null byte only , verify with objdump -d simplebindshell -M intel | grep 00
 ; assignment 1: create a bind shell 
-; originality : (not much in this assignment) NASM function allowing to specify port in human readable format and my own assembly code to avoid null bytes 
-; requirement : no null byte only , verify with objdump -d simplebindshell -M intel | grep 00
+; originality: (not much in this assignment) NASM function allowing to specify port in human readable format and my own assembly code to avoid null bytes 
 
 
 ; this function allows you to specify port in human readable format 
