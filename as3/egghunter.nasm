@@ -22,9 +22,8 @@ eggcreate:
  
 next_addr:
 ; increasing memory address to look at next address 
-; limit 1: it will segfault when it wraps around to 0x1 
-; limit 2: if the shell code is located below in memory it will not find it before segfault ofc :) 
- inc eax    
+; limit: if the shell code is located below in memory it will not find it before segfault ofc :) 
+ inc eax  ; replace to dec eax for lower memory search 
 ; check if our egg is at that memory address, if yes then set Zero Flag 
  cmp dword [eax], ebx 
 ; if Zero Flag is not set (check failed), then loop to next_addr
