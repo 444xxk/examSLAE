@@ -1,0 +1,41 @@
+; SLAE-xxx
+; thanks to previous students write ups 
+; assignment 5.2 : analyse metasploit shellcodes
+; originality : lets deal with infamous shikata ga nai !!! soooo
+; msfvenom -p linux/x86/exec -e x86/shikata_ga_nai -c 1 -f raw CMD="echo SLAEisrad" > msfcmdshikata.raw
+
+
+00000000  BA5ED74F9B        mov edx,0x9b4fd75e ; mov a random number into edx X] 
+00000005  D9C2              fld st2 ; 
+00000007  D97424F4          fnstenv [esp-0xc] ; alright, this double instruction usage is to get the eip on the stack  
+0000000B  5E                pop esi ; now eip is in esi :] 
+0000000C  29C9              sub ecx,ecx 
+0000000E  B10D              mov cl,0xd
+00000010  315614            xor [esi+0x14],edx
+00000013  035614            add edx,[esi+0x14]
+00000016  83EEFC            sub esi,byte -0x4
+00000019  BC22259018        mov esp,0x18902522
+0000001E  54                push esp
+0000001F  E8C0F04B6E        call dword 0x6e4bf0e4
+00000024  84E7              test bh,ah
+00000026  FC                cld
+00000027  5F                pop edi
+00000028  E58F              in eax,0x8f
+0000002A  FC                cld
+0000002B  F726              mul dword [esi]
+0000002D  2D9469B052        sub eax,0x52b06994
+00000032  349E              xor al,0x9e
+00000034  CD94              int 0x94
+00000036  B95EB7F7D1        mov ecx,0xd1f7b75e
+0000003B  3117              xor [edi],edx
+0000003D  A4                movsb
+0000003E  6D                insd
+0000003F  8F                db 0x8f
+00000040  1223              adc ah,[ebx]
+00000042  1D7DFCD7E1        sbb eax,0xe1d7fc7d
+00000047  D6                salc
+00000048  AD                lodsd
+00000049  9E                sahf
+0000004A  03                db 0x03
+0000004B  15                db 0x15
+0000004C  D1                db 0xd1

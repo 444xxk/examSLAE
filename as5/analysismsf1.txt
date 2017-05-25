@@ -1,0 +1,41 @@
+;SLAE-xxx
+; thanks to previous students write ups 
+;assignment 5.1: analyse metasploit shellcodes  
+;originality : check 5.2 ;] 
+
+; lets disassemble 
+ndisasm -u msfcmd.raw 
+00000000  6A0B              push byte +0xb ; push 11 which corresponds to syscall execve 
+00000002  58                pop eax ; put pushed 11 into eax 
+00000003  99                cdq ; this artifact put 0 into edx and is shorter than xor, kinda cool  
+00000004  52                push edx ; push 0 
+00000005  66682D63          push word 0x632d ; push "-c" for "/bin/sh -c" 
+00000009  89E7              mov edi,esp ; push pointer to this string in edi
+0000000B  682F736800        push dword 0x68732f ; push "/sh" , it contains null byte by default so we need to instruct msf to avoid it next time :] 
+00000010  682F62696E        push dword 0x6e69622f ; push "/bin"
+00000015  89E3              mov ebx,esp ; move the pointer to this string "/bin/sh" to ebx 
+00000017  52                push edx ; push 0 again 
+00000018  E80F000000        call dword 0x2c; call function at +0x44 bytes , so the rest of the ndisasm is wrong 
+; call function push the return address onto the stack, its a trick to have a pointer to the following string 
+; and the following string at 0x18 +4(this instruction is 4 bytes) +1(return address) is   
+
+p 0x18+4+1
+$1 = 0x1d
+p/u 0x1d
+$2 = 29
+; i always misscompute :] 
+
+hd -s 29  msfcmd.raw 
+0000001d  65 63 68 6f 20 53 4c 41  45 69 73 72 61 64 00 57  |echo SLAEisrad.W|
+[...] 
+
+; lets disassemble the remaining part 
+ndisasm -u -e 44 msfcmd.raw 
+00000000  57                push edi ; push the pointer to "-c" 
+00000001  53                push ebx ; push the pointer to "/bin/sh" 
+00000002  89E1              mov ecx,esp ; put this list of args into ecx for syscall execve 
+00000004  CD80              int 0x80 ; syscall interupt 
+
+;lets verify the syscall
+execve("/bin/sh", ["/bin/sh", "-c", "echo SLAEisrad"], NULL) = 0
+;done 
