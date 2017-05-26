@@ -4,38 +4,85 @@
 ; originality : lets deal with infamous shikata ga nai !!! soooo
 ; msfvenom -p linux/x86/exec -e x86/shikata_ga_nai -c 1 -f raw CMD="echo SLAEisrad" > msfcmdshikata.raw
 
+; i dont know why but the most accurate disassembly was dynamic analysis 
+; so lets analyse this 
+; x/40i $eip 
 
-00000000  BA5ED74F9B        mov edx,0x9b4fd75e ; mov a random number into edx X] 
-00000005  D9C2              fld st2 ; 
-00000007  D97424F4          fnstenv [esp-0xc] ; alright, this double instruction usage is to get the eip on the stack  
-0000000B  5E                pop esi ; now eip is in esi :] 
-0000000C  29C9              sub ecx,ecx 
-0000000E  B10D              mov cl,0xd
-00000010  315614            xor [esi+0x14],edx
-00000013  035614            add edx,[esi+0x14]
-00000016  83EEFC            sub esi,byte -0x4
-00000019  BC22259018        mov esp,0x18902522
-0000001E  54                push esp
-0000001F  E8C0F04B6E        call dword 0x6e4bf0e4
-00000024  84E7              test bh,ah
-00000026  FC                cld
-00000027  5F                pop edi
-00000028  E58F              in eax,0x8f
-0000002A  FC                cld
-0000002B  F726              mul dword [esi]
-0000002D  2D9469B052        sub eax,0x52b06994
-00000032  349E              xor al,0x9e
-00000034  CD94              int 0x94
-00000036  B95EB7F7D1        mov ecx,0xd1f7b75e
-0000003B  3117              xor [edi],edx
-0000003D  A4                movsb
-0000003E  6D                insd
-0000003F  8F                db 0x8f
-00000040  1223              adc ah,[ebx]
-00000042  1D7DFCD7E1        sbb eax,0xe1d7fc7d
-00000047  D6                salc
-00000048  AD                lodsd
-00000049  9E                sahf
-0000004A  03                db 0x03
-0000004B  15                db 0x15
-0000004C  D1                db 0xd1
+=> 0x8048054:	mov    edi,0x1e1d3ccf
+   0x8048059:	fxch   st(0)
+   0x804805b:	fnstenv [esp-0xc]
+   0x804805f:	pop    edx
+   0x8048060:	sub    ecx,ecx
+   0x8048062:	mov    cl,0xd
+   0x8048064:	sub    edx,0xfffffffc
+   0x8048067:	xor    DWORD PTR [edx+0x10],edi
+   0x804806a:	add    edi,DWORD PTR [edx+0x10]
+   0x804806d:	sub    eax,0xe91577c9
+   0x8048072:	stos   DWORD PTR es:[edi],eax
+   0x8048073:	fimul  DWORD PTR [edi+0x61]
+   0x8048076:	loope  0x8048031
+   0x8048078:	push   es
+   0x8048079:	xchg   esi,eax
+   0x804807a:	xchg   ecx,eax
+   0x804807b:	adc    ch,BYTE PTR [edx+0x30]
+   0x804807e:	bound  eax,QWORD PTR ds:0xbb0ba2a3
+   0x8048084:	xor    al,cl
+   0x8048086:	sahf   
+   0x8048087:	stos   DWORD PTR es:[edi],eax
+   0x8048088:	dec    edx
+   0x8048089:	add    eax,0x66302c1f
+   0x804808e:	ja     0x80480d3
+   0x8048090:	call   0xa0d2:0x9fdacb3b
+   0x8048097:	scas   al,BYTE PTR es:[edi]
+   0x8048098:	jle    0x80480da
+   0x804809a:	inc    edi
+   0x804809b:	sbb    dl,dl
+   0x804809d:	add    DWORD PTR [esi+0x546b],esp
+
+
+
+0x00000000      ba5ed74f9b     mov edx,0x9b4fd75e ; mov a random number into edx, changes everytime 
+0x00000005      d9c2           fxch st(0) ; static disas show "fld st(2)" instruction however, 
+; dynamic exec shows that is  fxch st(0), exchange st0 with st2; 
+; before 
+; st0            0	(raw 0x00000000000000000000)
+; after 
+; st0            -nan(0xc000000000000000)	(raw 0xffffc000000000000000)
+
+ 
+0x00000007      d97424f4       fnstenv [esp - 0xc] ; this trick loads EIP onto the stack 
+0x0000000b      5e             pop esi ; EIP is now popped onto ESI 
+0x0000000c      29c9           sub ecx, ecx; this equal 0-0 
+0x0000000e      b10d           mov cl, 0xd  ; put 13 into ecx for loop XOR 
+
+0x00000010      315614         xor dword [esi + 0x14], edx; decrypt the EIP + 0x14 with the random key from edx 
+0x00000013      035614         add edx, dword [esi + 0x14]; chained block cypher :], add into edx the result of the decryption 
+0x00000016      83eefc         sub esi, -4; move onto the next instruction to decrypt 
+
+|           0x00000019      bc22259018     mov esp, 0x18902522; this will be decrypted so its wrong instruction ??? 
+|           0x0000001e      54             push esp
+|           0x0000001f      e8c0f04b6e     call 0x6e4bf0e4
+|           0x00000024      84e7           test bh, ah
+|           0x00000026      fc             cld
+|           0x00000027      5f             pop edi
+|           0x00000028      e58f           in eax, 0x8f
+|           0x0000002a      fc             cld
+|           0x0000002b      f726           mul dword [esi]
+|           0x0000002d      2d9469b052     sub eax, 0x52b06994
+|           0x00000032      349e           xor al, 0x9e
+|           0x00000034      cd94           int 0x94
+|           0x00000036      b95eb7f7d1     mov ecx, 0xd1f7b75e
+|           0x0000003b      3117           xor dword [edi], edx
+|           0x0000003d      a4             movsb byte es:[edi], byte ptr [esi]
+\           0x0000003e      6d             insd dword es:[edi], dx
+            0x0000003f      8f             invalid
+            0x00000040      1223           adc ah, byte [ebx]
+            0x00000042      1d7dfcd7e1     sbb eax, 0xe1d7fc7d
+            0x00000047      d6             salc
+            0x00000048      ad             lodsd eax, dword [esi]
+            0x00000049      9e             sahf
+            0x0000004a      0315d1ffffff   add edx, dword [0xffffffd1]
+
+
+this is what ndisasm shows ... 
+00000005  D9C2              fld st2 ; why fld instead of  
