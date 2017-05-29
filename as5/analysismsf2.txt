@@ -1,88 +1,70 @@
 ; SLAE-xxx
 ; thanks to previous students write ups 
-; assignment 5.2 : analyse metasploit shellcodes
-; originality : lets deal with infamous shikata ga nai !!! soooo
+; assignment 5.2: analyse metasploit shellcodes
+; originality: lets deal with infamous shikata ga nai encryption !!! 
 ; msfvenom -p linux/x86/exec -e x86/shikata_ga_nai -c 1 -f raw CMD="echo SLAEisrad" > msfcmdshikata.raw
 
-; i dont know why but the most accurate disassembly was dynamic analysis 
-; so lets analyse this 
-; x/40i $eip 
+; the most accurate disassembly is dynamic analysis, because instructions are decrypted on the fly  
+; so lets analyse this in gdb (or libemu if you want) 
+; WARNING: do not run untrusted shellcode in gdb before analyzing them securely first  
 
-=> 0x8048054:	mov    edi,0x1e1d3ccf
-   0x8048059:	fxch   st(0)
-   0x804805b:	fnstenv [esp-0xc]
-   0x804805f:	pop    edx
-   0x8048060:	sub    ecx,ecx
-   0x8048062:	mov    cl,0xd
-   0x8048064:	sub    edx,0xfffffffc
-   0x8048067:	xor    DWORD PTR [edx+0x10],edi
-   0x804806a:	add    edi,DWORD PTR [edx+0x10]
-   0x804806d:	sub    eax,0xe91577c9
-   0x8048072:	stos   DWORD PTR es:[edi],eax
-   0x8048073:	fimul  DWORD PTR [edi+0x61]
-   0x8048076:	loope  0x8048031
-   0x8048078:	push   es
-   0x8048079:	xchg   esi,eax
-   0x804807a:	xchg   ecx,eax
-   0x804807b:	adc    ch,BYTE PTR [edx+0x30]
-   0x804807e:	bound  eax,QWORD PTR ds:0xbb0ba2a3
-   0x8048084:	xor    al,cl
-   0x8048086:	sahf   
-   0x8048087:	stos   DWORD PTR es:[edi],eax
-   0x8048088:	dec    edx
-   0x8048089:	add    eax,0x66302c1f
-   0x804808e:	ja     0x80480d3
-   0x8048090:	call   0xa0d2:0x9fdacb3b
-   0x8048097:	scas   al,BYTE PTR es:[edi]
-   0x8048098:	jle    0x80480da
-   0x804809a:	inc    edi
-   0x804809b:	sbb    dl,dl
-   0x804809d:	add    DWORD PTR [esi+0x546b],esp
+; gdb$ x/20i $eip 
+=> 0x8048054:	mov    edi,0x1e1d3ccf ;  mov edx,0x9b4fd75e ; mov a random number into edx, changes everytime
+   0x8048059:	fxch   st(0) ; static disas show "fld st(2)" instruction however,
+; dynamic exec shows that is  fxch st(0), exchange st0 with st2, see under;
+; before
+; st0            0      (raw 0x00000000000000000000)
+; after
+; st0            -nan(0xc000000000000000)       (raw 0xffffc000000000000000)
+   0x804805b:	fnstenv [esp-0xc] ; this instruction loads eip (env) into the stack 
+   0x804805f:	pop    edx; edx now contains eip 0x08048059
+   0x8048060:	sub    ecx,ecx ; this means zero minus zero i dont understand its usage, useless op ? 
+   0x8048062:	mov    cl,0xd ; put 13 into ecx for looping xor, decrypt 13 * 4 bytes 
+;loop starts here  
+   0x8048064:	sub    edx,0xfffffffc ; remove -4 (+4) from eip so now 0x0804805D
+   0x8048067:	xor    DWORD PTR [edx+0x10],edi ; decrypt the shellcode at 0x0804805D+0x10 (6D) with random key 
+   0x804806a:	add    edi,DWORD PTR [edx+0x10] ; add the result to the key (chained mode) 
 
+; the next OP was wrong 0x804806d:	sub    eax,0xe91577c9 ; it needs to be decrypted before disassemble :] 
+; with decryption it transforms to 
+ 0x804806d:	loop   0x8048064 ; makes more sense now :] 
+; loop ends here 
 
+; we continue to analyse after decryption 
+; lets break after decryption and read instructions 
+gdb$ x/20i $eip
+; hey its more standard stuff now, its exactly the same as assignment 5.1 
+=> 0x804806f:	push   0xb ; push 13 
+   0x8048071:	pop    eax ; put 13 into eax, execve syscall  
+   0x8048072:	cdq   ; 
+   0x8048073:	push   edx ; 
+   0x8048074:	pushw  0x632d ; "-c" 
+   0x8048078:	mov    edi,esp ; 
+   0x804807a:	push   0x68732f ; "/sh" 
+; interestingly this was containing null byte decrypted previously
+; but in encrypted format null byte was avoided , nice :] 
+   0x804807f:	push   0x6e69622f "/bin" 
+   0x8048084:	mov    ebx,esp  
+   0x8048086:	push   edx
+   0x8048087:	call   0x804809b ; we see the call trick again, push next instruction pointer to stack 
+; which contains the payload of "/bin/sh -c" 
+; proof : 
+;cx/1s 0x804808c
+;c0x804808c:	 "echo SLAEisrad"
 
-0x00000000      ba5ed74f9b     mov edx,0x9b4fd75e ; mov a random number into edx, changes everytime 
-0x00000005      d9c2           fxch st(0) ; static disas show "fld st(2)" instruction however, 
-; dynamic exec shows that is  fxch st(0), exchange st0 with st2; 
-; before 
-; st0            0	(raw 0x00000000000000000000)
-; after 
-; st0            -nan(0xc000000000000000)	(raw 0xffffc000000000000000)
-
- 
-0x00000007      d97424f4       fnstenv [esp - 0xc] ; this trick loads EIP onto the stack 
-0x0000000b      5e             pop esi ; EIP is now popped onto ESI 
-0x0000000c      29c9           sub ecx, ecx; this equal 0-0 
-0x0000000e      b10d           mov cl, 0xd  ; put 13 into ecx for loop XOR 
-
-0x00000010      315614         xor dword [esi + 0x14], edx; decrypt the EIP + 0x14 with the random key from edx 
-0x00000013      035614         add edx, dword [esi + 0x14]; chained block cypher :], add into edx the result of the decryption 
-0x00000016      83eefc         sub esi, -4; move onto the next instruction to decrypt 
-
-|           0x00000019      bc22259018     mov esp, 0x18902522; this will be decrypted so its wrong instruction ??? 
-|           0x0000001e      54             push esp
-|           0x0000001f      e8c0f04b6e     call 0x6e4bf0e4
-|           0x00000024      84e7           test bh, ah
-|           0x00000026      fc             cld
-|           0x00000027      5f             pop edi
-|           0x00000028      e58f           in eax, 0x8f
-|           0x0000002a      fc             cld
-|           0x0000002b      f726           mul dword [esi]
-|           0x0000002d      2d9469b052     sub eax, 0x52b06994
-|           0x00000032      349e           xor al, 0x9e
-|           0x00000034      cd94           int 0x94
-|           0x00000036      b95eb7f7d1     mov ecx, 0xd1f7b75e
-|           0x0000003b      3117           xor dword [edi], edx
-|           0x0000003d      a4             movsb byte es:[edi], byte ptr [esi]
-\           0x0000003e      6d             insd dword es:[edi], dx
-            0x0000003f      8f             invalid
-            0x00000040      1223           adc ah, byte [ebx]
-            0x00000042      1d7dfcd7e1     sbb eax, 0xe1d7fc7d
-            0x00000047      d6             salc
-            0x00000048      ad             lodsd eax, dword [esi]
-            0x00000049      9e             sahf
-            0x0000004a      0315d1ffffff   add edx, dword [0xffffffd1]
+; syscall finally 
+gdb$ x/4i 0x804809b
+   0x804809b:	push   edi ; push ptr to "-c"
+   0x804809c:	push   ebx ; push ptr to "/bin/sh" 
+   0x804809d:	mov    ecx,esp ; move pointer to arguments in ecx  
+   0x804809f:	int    0x80 ; execve  
 
 
-this is what ndisasm shows ... 
-00000005  D9C2              fld st2 ; why fld instead of  
+; as a conclusion a shikata ga nai round does : 
+; 1. elect a random number for key 
+; 2. use chained XOR for encrypt / decrypt 
+; 3. decrypt the upcoming instructions with this key and seed with the result for next decryption 
+
+Remarks: 
+this is what ndisasm, static disassembly, shows for second instruction :  
+00000005  D9C2              fld st2 ; why fld instead of fxch st(0) , needs to figure out why  
