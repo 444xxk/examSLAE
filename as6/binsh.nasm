@@ -1,4 +1,4 @@
-
+; original 
 ;xor    %eax,%eax
 ;push   %eax
 ;push   $0x68732f2f
