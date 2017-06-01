@@ -4,7 +4,7 @@
 ; originality: lets deal with infamous shikata ga nai encryption !!! 
 ; msfvenom -p linux/x86/exec -e x86/shikata_ga_nai -c 1 -f raw CMD="echo SLAEisrad" > msfcmdshikata.raw
 
-; the most accurate disassembly is dynamic analysis, because instructions are decrypted on the fly  
+; the most accurate disassembly is dynamic analysis, because instructions are decrypted on the fly !   
 ; so lets analyse this in gdb (or libemu if you want) 
 ; WARNING: do not run untrusted shellcode in gdb before analyzing them securely first  
 
@@ -17,15 +17,22 @@
 ; after
 ; st0            -nan(0xc000000000000000)       (raw 0xffffc000000000000000)
    0x804805b:	fnstenv [esp-0xc] ; this instruction loads eip (env) into the stack 
-   0x804805f:	pop    edx; edx now contains eip 0x08048059
+   0x804805f:	pop    edx; edx now contains eip, 0x08048059
    0x8048060:	sub    ecx,ecx ; this means zero minus zero i dont understand its usage, useless op ? 
    0x8048062:	mov    cl,0xd ; put 13 into ecx for looping xor, decrypt 13 * 4 bytes 
 ;loop starts here  
    0x8048064:	sub    edx,0xfffffffc ; remove -4 (+4) from eip so now 0x0804805D
    0x8048067:	xor    DWORD PTR [edx+0x10],edi ; decrypt the shellcode at 0x0804805D+0x10 (6D) with random key 
-   0x804806a:	add    edi,DWORD PTR [edx+0x10] ; add the result to the key (chained mode) 
+   0x804806a:	add    edi,DWORD PTR [edx+0x10] ; add the result to the key (chained mode encryption) 
 
-; the next OP was wrong 0x804806d:	sub    eax,0xe91577c9 ; it needs to be decrypted before disassemble :] 
+; REMARK : the above 2 instructions will always stay equivalent
+; but will be polymorphic !! 
+; it means each time you generate a shellcode, it will vary but does the same 
+; example other generation : 
+; example other gen: 00000010  315614            xor [esi+0x14],edx; now this use edx and esi and different size (0x14) 
+; example other gen: 00000013  035614            add edx,[esi+0x14]; still chained though 
+
+; the next OP was wrong 0x804806d:	sub    eax,0xe91577c9 ; it needs to be decrypted first 
 ; with decryption it transforms to 
  0x804806d:	loop   0x8048064 ; makes more sense now :] 
 ; loop ends here 
