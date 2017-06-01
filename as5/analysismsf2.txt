@@ -4,11 +4,11 @@
 ; originality: lets deal with infamous shikata ga nai encryption !!! 
 ; msfvenom -p linux/x86/exec -e x86/shikata_ga_nai -c 1 -f raw CMD="echo SLAEisrad" > msfcmdshikata.raw
 
-; the most accurate disassembly is dynamic analysis, because instructions are decrypted on the fly !   
-; so lets analyse this in gdb (or libemu if you want) 
-; WARNING: do not run untrusted shellcode in gdb before analyzing them securely first  
+The most accurate disassembly is dynamic analysis, because instructions are decrypted on the fly !   
+so lets analyse this in gdb (or libemu if you want) 
+WARNING: do not run untrusted shellcode in gdb before analyzing them securely first  
 
-; gdb$ x/20i $eip 
+gdb$ x/20i $eip 
 => 0x8048054:	mov    edi,0x1e1d3ccf ;  mov edx,0x9b4fd75e ; mov a random number into edx, changes everytime
    0x8048059:	fxch   st(0) ; static disas show "fld st(2)" instruction however,
 ; dynamic exec shows that is  fxch st(0), exchange st0 with st2, see under;
@@ -25,22 +25,22 @@
    0x8048067:	xor    DWORD PTR [edx+0x10],edi ; decrypt the shellcode at 0x0804805D+0x10 (6D) with random key 
    0x804806a:	add    edi,DWORD PTR [edx+0x10] ; add the result to the key (chained mode encryption) 
 
-; REMARK : the above 2 instructions will always stay equivalent
-; but will be polymorphic !! 
-; it means each time you generate a shellcode, it will vary but does the same 
-; example other generation : 
-; example other gen: 00000010  315614            xor [esi+0x14],edx; now this use edx and esi and different size (0x14) 
-; example other gen: 00000013  035614            add edx,[esi+0x14]; still chained though 
+REMARK : the above 2 instructions will always stay equivalent
+but will be polymorphic !! 
+it means each time you generate a shellcode, it will vary but does the same 
+example other generation : 
+example other gen: 00000010  315614            xor [esi+0x14],edx; now this use edx and esi and different size (0x14) 
+example other gen: 00000013  035614            add edx,[esi+0x14]; still chained though 
 
-; the next OP was wrong 0x804806d:	sub    eax,0xe91577c9 ; it needs to be decrypted first 
+the next OP was wrong 0x804806d:	sub    eax,0xe91577c9 ; it needs to be decrypted first 
 ; with decryption it transforms to 
  0x804806d:	loop   0x8048064 ; makes more sense now :] 
 ; loop ends here 
 
-; we continue to analyse after decryption 
-; lets break after decryption and read instructions 
+We continue to analyse after decryption 
+lets break after decryption and read instructions 
 gdb$ x/20i $eip
-; hey its more standard stuff now, its exactly the same as assignment 5.1 
+It is way more standard stuff now, its exactly the same as assignment 5.1 
 => 0x804806f:	push   0xb ; push 13 
    0x8048071:	pop    eax ; put 13 into eax, execve syscall  
    0x8048072:	cdq   ; 
@@ -48,16 +48,16 @@ gdb$ x/20i $eip
    0x8048074:	pushw  0x632d ; "-c" 
    0x8048078:	mov    edi,esp ; 
    0x804807a:	push   0x68732f ; "/sh" 
-; interestingly this was containing null byte decrypted previously
-; but in encrypted format null byte was avoided , nice :] 
+Interestingly this was containing null byte decrypted previously
+but in encrypted format null byte was avoided, double usage of encryption 
    0x804807f:	push   0x6e69622f "/bin" 
    0x8048084:	mov    ebx,esp  
    0x8048086:	push   edx
    0x8048087:	call   0x804809b ; we see the call trick again, push next instruction pointer to stack 
 ; which contains the payload of "/bin/sh -c" 
 ; proof : 
-;cx/1s 0x804808c
-;c0x804808c:	 "echo SLAEisrad"
+cx/1s 0x804808c
+c0x804808c:	 "echo SLAEisrad"
 
 ; syscall finally 
 gdb$ x/4i 0x804809b
@@ -67,11 +67,12 @@ gdb$ x/4i 0x804809b
    0x804809f:	int    0x80 ; execve  
 
 
-; as a conclusion a shikata ga nai round does : 
-; 1. elect a random number for key 
-; 2. use chained XOR for encrypt / decrypt 
-; 3. decrypt the upcoming instructions with this key and seed with the result for next decryption 
+As a conclusion one round of  shikata ga nai does : 
+1. elect a random number for key 
+2. use XOR for encrypt / decrypt with various registers and size 
+3. decrypt the upcoming instructions with this key and seed with the result for next decryption 
+
 
 Remarks: 
-this is what ndisasm, static disassembly, shows for second instruction :  
+This is what ndisasm, static disassembly, shows for second instruction :  
 00000005  D9C2              fld st2 ; why fld instead of fxch st(0) , needs to figure out why  
