@@ -1,7 +1,7 @@
 ; SLAE-xxx
-; assignment 7: use an encryption scheme to encode shellcode 
+; assignment 7: use an encryption scheme to encode shellcode  
 ; originality: RC4 assembly , this is taken from a RC4 benchmark in x86 and adapted to encode / decode shellcode 
-; source: 
+; source: https://github.com/chen-yumin/rc4-cipher-in-assembly/blob/master/rc4_cipher.c
 
 ; lets RC4 ! 
 
@@ -10,8 +10,14 @@ global _start
 
 _start: 
 
+; the decoder stub wont be small with this kind of encryption 
+; i mean its much more heavy than say shikata ga nai XOR encoder 
+; you need to create and populate a 256 bytes struct here so if you 
+; want to embed a decoder stub, its gonna be bigger 
 
-; fill the structure [256] with 0..255  
+
+; first fill the structure [256] with 0..255
+KSA:   
 mov eax,s256 
 mov ecx,256 
 fill_s: 
@@ -19,61 +25,65 @@ fill_s:
 	sub bl,cl ; 
 	mov [eax + ebx], bl; move along the array and put values into it  
 loop fill_s 
-; result 
+; you can check the result in gdb  
 ; gdb$ x/100x &s256 
 ; 0x80490ec <s256>:	0x03020100	0x00000004
+; S[i] is done 
 
 
-; KSA 
-; randomly permute the struct based on key 
-ksa: 
-mov edx,key 
+; permute the struct based on the selected key 
+; Generate S[j]  
+mov edx,key ; key 
 mov edi,keylen ; edi = size of key 
-mov esi,keyptr ; esi = k 
-mov ecx,256 
+mov esi,keyptr ; we store key modulo in a struct 
+mov ecx,256 ; 
 xor ebx,ebx ; ebx = j 
 
 loop_j:
-	cmp ebx,edi ; test if below  
-	jl continue_loop
-	xor ebx, ebx ; clear ebx, move to start of key , repeat until done all 
+	cmp ebx,edi ; test if j smaller than keylen 
+	jl continue_loop ; we continue  
+	xor ebx, ebx ; else clear ebx , modulo key length is done here by restarting at key[0] 
 
 continue_loop: 
-	mov ah, [edx + ebx]
-	mov [esi], ah
-	inc esi 
-	inc ebx 
-	loop loop_j 
+	; move one byte at a time 
+	mov ah, [edx + ebx] ; take key byte content (offset)  
+	mov [esi], ah ; and move the byte to prepared struct keyptr   
+	inc esi ; continue to fill all the struct 
+	inc ebx ; and move along the key 
+	loop loop_j ; stop after 256 
+; here we have prepared a struct keyptr with key[i mod keylength] 
 
 
-; Generate S 
-
-mov edi,s256
-xor ebx,ebx 
-sub esi,256 
-xor eax,eax 
-mov ecx,256 
+; Generate S now 
+; you can check that the struct created is similar to the python script
+; to verify you are doing good  
+mov edi,s256 ; S[i] 
+xor ebx,ebx ; offset 0 
+sub esi,256 ; go back to start of key struct 
+xor eax,eax ; clean eax for using as offset 
+mov ecx,256 ; do this for 256 bytes
 
 loop_s: 
+	mov dl, [esi+eax] ; key[modulo] into dl 
+	add bl, dl ; bl contains j and we add key[] 
+	mov dl, [edi+eax] ; S[i] into dl 
+	add bl, dl ; bl contains j and we add S[i] 
+	mov dl, [edi+eax] ; swap dl and dh 
+	mov dh, [edi+ebx] ; swap 
+	mov [edi+eax], dh ; swap 
+	mov [edi+ebx], dl ; swap 
+	inc eax ;  move along 
+	loop loop_s  
 
-	mov dl, [esi+eax]
-	add bl, dl
-	mov dl, [edi+eax]
-	add bl, dl
-	mov dl, [edi+eax]
-	mov dh, [edi+ebx]
-	mov [edi+eax], dh
-	mov [edi+ebx], dl
-	inc eax
-	loop loop_s	
 
 
-encode: 
+; now lets encode using the pseudo ramdom stream 
+PRGA: 
 mov esi, shellcode 
 mov edi, s256
 mov edx, output 
 
-; clean 
+; clean registers 
 xor eax, eax 
 xor ebx,ebx
 
@@ -103,9 +113,9 @@ cd:
 
 
 ; since the same function in RC4 is  used to encode and decode
-; we will output the modified shellcode but also jump to it 
+; we will output the modified shellcode but also jump to it after 
 
- ; output the encoded / decoded stuff
+; output the encoded / decoded stuff
 print_encoded: 
 ; print the encoded shellcode, to see bytes use | xxd for instance 
 mov eax, 0x4
@@ -117,13 +127,10 @@ int 0x80
 
 ; now jump to decoded shellcode 
 end: 
-; exit the program gracefully
-jmp shellcode
+; in case of encoding we will segfault , otherwise we jump to decoded shellcode 
+jmp output 
 
 
-
-
-	
 
 section .data 
 
@@ -138,7 +145,7 @@ section .bss
 
 keyptr: resb 256
 s256: resb 256 
-; 1024 bytes should be enough for shellcode 
+; output size of 1024 bytes should be enough for shellcodes 
 output: resb 1024 
 
 

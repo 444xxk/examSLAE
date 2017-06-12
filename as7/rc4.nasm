@@ -16,7 +16,8 @@ _start:
 ; want to embed a decoder stub, its gonna be bigger 
 
 
-; first fill the structure [256] with 0..255  
+; first fill the structure [256] with 0..255
+KSA:   
 mov eax,s256 
 mov ecx,256 
 fill_s: 
@@ -27,54 +28,57 @@ loop fill_s
 ; you can check the result in gdb  
 ; gdb$ x/100x &s256 
 ; 0x80490ec <s256>:	0x03020100	0x00000004
+; S[i] is done 
 
 
-; KSA 
 ; permute the struct based on the selected key 
-ksa: 
-mov edx,key 
+; Generate S[j]  
+mov edx,key ; key 
 mov edi,keylen ; edi = size of key 
-mov esi,keyptr ; esi = k 
-mov ecx,256 
+mov esi,keyptr ; we store key modulo in a struct 
+mov ecx,256 ; 
 xor ebx,ebx ; ebx = j 
 
 loop_j:
-	cmp ebx,edi ; test if below  
-	jl continue_loop
-	xor ebx, ebx ; clear ebx, move to start of key , repeat until done all 
+	cmp ebx,edi ; test if j smaller than keylen 
+	jl continue_loop ; we continue  
+	xor ebx, ebx ; else clear ebx , modulo key length is done here by restarting at key[0] 
 
 continue_loop: 
-	mov ah, [edx + ebx] ; take key content and put it in struct 
-	mov [esi], ah ; move the byte to key struct  
-	inc esi  
-	inc ebx 
-	loop loop_j 
+	; move one byte at a time 
+	mov ah, [edx + ebx] ; take key byte content (offset)  
+	mov [esi], ah ; and move the byte to prepared struct keyptr   
+	inc esi ; continue to fill all the struct 
+	inc ebx ; and move along the key 
+	loop loop_j ; stop after 256 
+; here we have prepared a struct keyptr with key[i mod keylength] 
 
 
-; Generate S 
+; Generate S now 
 ; you can check that the struct created is similar to the python script
 ; to verify you are doing good  
-mov edi,s256
-xor ebx,ebx 
-sub esi,256 
-xor eax,eax 
-mov ecx,256 
+mov edi,s256 ; S[i] 
+xor ebx,ebx ; offset 0 
+sub esi,256 ; go back to start of key struct 
+xor eax,eax ; clean eax for using as offset 
+mov ecx,256 ; do this for 256 bytes
 
 loop_s: 
-	mov dl, [esi+eax]
-	add bl, dl
-	mov dl, [edi+eax]
-	add bl, dl
-	mov dl, [edi+eax]
-	mov dh, [edi+ebx]
-	mov [edi+eax], dh
-	mov [edi+ebx], dl
-	inc eax
-	loop loop_s	
+	mov dl, [esi+eax] ; key[modulo] into dl 
+	add bl, dl ; bl contains j and we add key[] 
+	mov dl, [edi+eax] ; S[i] into dl 
+	add bl, dl ; bl contains j and we add S[i] 
+	mov dl, [edi+eax] ; swap dl and dh 
+	mov dh, [edi+ebx] ; swap 
+	mov [edi+eax], dh ; swap 
+	mov [edi+ebx], dl ; swap 
+	inc eax ;  move along 
+	loop loop_s  
+
 
 
 ; now lets encode using the pseudo ramdom stream 
-encode: 
+PRGA: 
 mov esi, shellcode 
 mov edi, s256
 mov edx, output 
