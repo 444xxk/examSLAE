@@ -118,7 +118,7 @@ int 0x80
 ; now jump to decoded shellcode 
 end: 
 ; exit the program gracefully
-jmp output 
+jmp shellcode
 
 
 
