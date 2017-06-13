@@ -1,6 +1,7 @@
 ; SLAE-xxx
 ; assignment 7: use an encryption scheme to encode shellcode  
 ; originality: RC4 assembly , this is taken from a RC4 benchmark in x86 and adapted to encode / decode shellcode 
+; it s also commented if you want to understand RC4 in assembly  
 ; source: https://github.com/chen-yumin/rc4-cipher-in-assembly/blob/master/rc4_cipher.c
 
 ; lets RC4 ! 
