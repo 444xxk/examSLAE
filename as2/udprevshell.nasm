@@ -1,5 +1,5 @@
-; SLAE-X 
-; thanks to writesup from previou students :] 
+; SLAE-970
+; thanks to writesup from previous students :] 
 ; assignment: 2. create a reverse shell  
 ; originality: using UDP instead TCP 
 ; usage : sudo ncat -lup 53 on the receiving end 

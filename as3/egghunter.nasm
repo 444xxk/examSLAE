@@ -1,4 +1,4 @@
-; SLAE-XXX
+; SLAE-970
 ; thanks for previous students write up :] 
 ; assignment 3: egghunter shellcode 
 ; originality: I used the jmp pop jmp technique, i have not seen it used and the other techniques did not work for me besides giving segfaults :D 

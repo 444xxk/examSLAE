@@ -1,6 +1,6 @@
-; SLAE-xxx
+; SLAE-970
 ; assignment 7: use an encryption scheme to encode shellcode  
-; originality: RC4 assembly , this is taken from a RC4 benchmark in x86 and adapted to encode / decode shellcode 
+; originality: RC4 assembly used, this was taken from a RC4 benchmark in asm x86 and adapted to encode / decode shellcode 
 ; it s also commented if you want to understand RC4 in assembly  
 ; source: https://github.com/chen-yumin/rc4-cipher-in-assembly/blob/master/rc4_cipher.c
 
@@ -90,9 +90,9 @@ xor ebx,ebx
 
 ; do this for size of the shellcode 
 mov ecx,shelllen 
-
+; encode now with bytes 
 cd: 
-	push ecx
+	push ecx 
 	movzx ecx,al
 	inc cl
 	push edx
@@ -105,7 +105,7 @@ cd:
 	movzx edx,dl
 	mov dl,[edi+edx]
 	mov cl,[esi+eax]
-	xor cl,dl
+	xor cl,dl ; XOR 
 	pop edx
 	mov [edx+eax],cl
 	inc eax

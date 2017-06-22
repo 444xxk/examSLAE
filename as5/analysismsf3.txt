@@ -1,4 +1,4 @@
-; SLAE-xxx
+; SLAE-970
 ; thanks to previous students write ups 
 ; assignment 5.3: analyse metasploit shellcodes
 ; originality: lets check syscall for readfile 

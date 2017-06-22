@@ -1,4 +1,4 @@
-; SLAE-xxx
+; SLAE-970
 ; assignment 6.2: polymorphic version of shellstorm shellcode 
 ; originality: tried to use my own opcodes replacement 
 

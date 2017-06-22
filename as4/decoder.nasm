@@ -1,4 +1,4 @@
-; SLAE-XXX
+; SLAE-970
 ; assignemnt 4.2: create custom encoder
 ; originality: decomposed XOR in OR AND and NOT 
 

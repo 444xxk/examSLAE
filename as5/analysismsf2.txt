@@ -1,4 +1,4 @@
-; SLAE-xxx
+; SLAE-970
 ; thanks to previous students write ups 
 ; assignment 5.2: analyse metasploit shellcodes
 ; originality: lets deal with infamous shikata ga nai encryption !!! 

@@ -1,4 +1,4 @@
-; SLAE-xxx
+; simple modified syscall exit 
 
 
 

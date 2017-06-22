@@ -1,4 +1,4 @@
-; SLAE-XXX
+; SLAE-970
 ; assignemnt 4.1: create a custom encoding scheme like Insertion Encoder 
 ; originality: decomposed XOR in AND and NOT for encoding against a static one byte key , used only assembly 
 ; see decoder.nasm for decode and exec 

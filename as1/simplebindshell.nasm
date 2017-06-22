@@ -1,4 +1,4 @@
-; SLAE-XXX 
+; SLAE-970
 ; thanks to writesup from previous students :] 
 ; syscalls doc /usr/include/i386-linux-gnu/asm/unistd_32.h  and net.h 
 ; requirements: no null byte, verify with objdump -d simplebindshell -M intel | grep 00

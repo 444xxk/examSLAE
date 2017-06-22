@@ -1,10 +1,10 @@
-; SLAE-xxx 
+; SLAE-970
 ; assigmemnt 6.1: polymorphic version of shellstorm shellcode 
 ; originality: tried to use my own opcode replacement 
 ; i dont fully agree with the polymorphic term used here 
 ; for me polymorphic means "change everytime" but here we just want a 
 ; modified version of a shellcode to avoid pattern detection 
-; it wont change everytime (see assignment bonus for that) 
+; it wont change everytime (see assignment extra for a tentative one) 
 
 ; execve /bin/sh 
 ; http://shell-storm.org/shellcode/files/shellcode-827.php
